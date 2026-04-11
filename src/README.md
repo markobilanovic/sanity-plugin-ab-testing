@@ -48,7 +48,7 @@ export default defineConfig({
 - `abTestTypeName`: AB test document type name (default: `abTest`).
 - `fieldNames`: override AB control field names (`showAbVariant`, `abTestRef`, `abVariants`, ...).
 - `revalidation`: optional publish hook config. No revalidation runs unless this is configured.
-  - `documents`: list of per-document-type revalidation configs (`type`, optional `pathPrefix`, optional `tagPrefix`).
+  - `documents`: list of per-document-type revalidation configs (`type`, optional `pathPrefix`, optional `tagPrefix`). When `pathPrefix` is omitted, revalidation path is `/${slug}`.
   - `endpointPath`: relative endpoint path called from Studio.
   - `secretEnvVar`: optional Studio env var name for a revalidation secret.
   - `delayMs`: delay before request to reduce publish/read race conditions.

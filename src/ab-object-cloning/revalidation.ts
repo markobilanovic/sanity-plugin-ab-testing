@@ -8,6 +8,13 @@ import {
 import {getCanonicalDocumentId, getPostSlug, normalizeNonEmptyString} from './helpers'
 import type {ResolvedRevalidationConfig, RevalidationConfig} from './types'
 
+function buildRevalidationPath(pathPrefix: string | null, slug: string): string {
+  const normalizedSlug = slug.replace(/^\/+|\/+$/g, '')
+  const normalizedPrefix = pathPrefix?.replace(/^\/+|\/+$/g, '') ?? ''
+
+  return normalizedPrefix ? `/${normalizedPrefix}/${normalizedSlug}` : `/${normalizedSlug}`
+}
+
 export function resolveRevalidationConfig(
   config: RevalidationConfig | false | undefined,
 ): ResolvedRevalidationConfig | null {
@@ -25,15 +32,18 @@ export function resolveRevalidationConfig(
     normalizeNonEmptyString(config?.secretEnvVar) ?? 'SANITY_STUDIO_ASTRO_REVALIDATE_SECRET'
   const configuredDocuments = Array.isArray(config?.documents) ? config.documents : []
 
-  const documentsByType = new Map<string, {type: string; pathPrefix: string; tagPrefix: string}>()
+  const documentsByType = new Map<
+    string,
+    {type: string; pathPrefix: string | null; tagPrefix: string | null}
+  >()
   for (const documentConfig of configuredDocuments) {
     const type = normalizeNonEmptyString(documentConfig?.type)
     if (!type || documentsByType.has(type)) {
       continue
     }
 
-    const pathPrefix = normalizeNonEmptyString(documentConfig.pathPrefix) ?? type
-    const tagPrefix = normalizeNonEmptyString(documentConfig.tagPrefix) ?? type
+    const pathPrefix = normalizeNonEmptyString(documentConfig.pathPrefix)
+    const tagPrefix = normalizeNonEmptyString(documentConfig.tagPrefix)
     documentsByType.set(type, {
       type,
       pathPrefix,
@@ -44,8 +54,8 @@ export function resolveRevalidationConfig(
   if (documentsByType.size === 0) {
     documentsByType.set(DEFAULT_REVALIDATE_DOCUMENT_TYPE, {
       type: DEFAULT_REVALIDATE_DOCUMENT_TYPE,
-      pathPrefix: DEFAULT_REVALIDATE_DOCUMENT_TYPE,
-      tagPrefix: DEFAULT_REVALIDATE_DOCUMENT_TYPE,
+      pathPrefix: null,
+      tagPrefix: null,
     })
   }
 
@@ -73,12 +83,14 @@ async function triggerRevalidation(
   }
 
   const payload: {
-    tags: string[]
+    tags?: string[]
     paths: string[]
     secret?: string
   } = {
-    tags: [`${documentRevalidation.tagPrefix}:${slug}`],
-    paths: [`/${documentRevalidation.pathPrefix}/${slug}`],
+    paths: [buildRevalidationPath(documentRevalidation.pathPrefix, slug)],
+  }
+  if (documentRevalidation.tagPrefix) {
+    payload.tags = [`${documentRevalidation.tagPrefix}:${slug}`]
   }
   const revalidateSecret = normalizeNonEmptyString(revalidationConfig.secretEnvVar)
   if (revalidateSecret) {

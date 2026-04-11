@@ -36,8 +36,8 @@ export type RevalidationConfig = {
 
 export type ResolvedRevalidationDocumentConfig = {
   type: string
-  pathPrefix: string
-  tagPrefix: string
+  pathPrefix: string | null
+  tagPrefix: string | null
 }
 
 export type ResolvedRevalidationConfig = {
