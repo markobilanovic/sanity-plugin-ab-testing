@@ -1,5 +1,5 @@
 import {Button, Dialog, Flex, Stack, Text} from '@sanity/ui'
-import {useEffect, useMemo, useState} from 'react'
+import {type ReactElement, useEffect, useMemo, useState} from 'react'
 import {
   MemberField,
   type ObjectInputProps,
@@ -39,7 +39,7 @@ export function AbObjectCustomizerField({
   props,
   fieldNames,
   abTestTypeName,
-}: AbObjectCustomizerFieldProps) {
+}: AbObjectCustomizerFieldProps): ReactElement {
   const {
     renderInput,
     renderField,
@@ -120,10 +120,11 @@ export function AbObjectCustomizerField({
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return
+      return () => undefined
     }
 
     const currentPathKey = pathToKey(props.path)
+
     const handleOpenConfigDialog = (event: Event) => {
       const customEvent = event as CustomEvent<{
         targetPath?: unknown
@@ -155,7 +156,8 @@ export function AbObjectCustomizerField({
           const selectedFieldSet = Array.isArray(selectedFields)
             ? new Set(
                 selectedFields.filter(
-                  (value): value is string => typeof value === 'string' && Boolean(value.trim()),
+                  (fieldValue): fieldValue is string =>
+                    typeof fieldValue === 'string' && Boolean(fieldValue.trim()),
                 ),
               )
             : new Set(
@@ -212,18 +214,17 @@ export function AbObjectCustomizerField({
       }
 
       setSelectedFieldName(selectedField)
-      void openDialog()
+      openDialog()
     }
 
-    window.addEventListener(AB_CONFIG_ACTION_EVENT_NAME, handleOpenConfigDialog as EventListener)
+    window.addEventListener(AB_CONFIG_ACTION_EVENT_NAME, handleOpenConfigDialog)
 
     return () => {
-      window.removeEventListener(
-        AB_CONFIG_ACTION_EVENT_NAME,
-        handleOpenConfigDialog as EventListener,
-      )
+      window.removeEventListener(AB_CONFIG_ACTION_EVENT_NAME, handleOpenConfigDialog)
     }
   }, [
+    currentAbTestRef,
+    currentExperimentName,
     controlVariantSeed,
     currentVariants,
     fieldNames.variants,
@@ -232,6 +233,11 @@ export function AbObjectCustomizerField({
     props.path,
     shouldShowAbVariant,
   ])
+
+  const handleCloseDialog = () => {
+    setSelectedFieldName(null)
+    closeDialog()
+  }
 
   const handleEnableAbVariantWithSelection = () => {
     if (!selectedAbTestId || variantCodes.length === 0) {
@@ -266,11 +272,6 @@ export function AbObjectCustomizerField({
       ]),
     )
     handleCloseDialog()
-  }
-
-  const handleCloseDialog = () => {
-    setSelectedFieldName(null)
-    closeDialog()
   }
 
   const handleDisableAbVariant = () => {
@@ -354,7 +355,7 @@ export function AbObjectCustomizerField({
             <Text size={1}>AB test: {fieldActionResultDialog.abTestName}</Text>
             {fieldActionResultDialog.kind === 'success' ? (
               <Text size={1}>
-                Field "{fieldActionResultDialog.fieldName}" was added to{' '}
+                Field &#34;{fieldActionResultDialog.fieldName}&#34; was added to{' '}
                 {fieldActionResultDialog.updatedVariantsCount} of{' '}
                 {fieldActionResultDialog.totalVariantsCount} variant clone
                 {fieldActionResultDialog.totalVariantsCount === 1 ? '' : 's'}.
