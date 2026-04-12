@@ -213,13 +213,12 @@ function transformAbContainerField(field: AnyField, config: WithAbObjectOptions)
 
   const resolvedFieldNames = resolveAbFieldNames(config.fieldNames)
   const resolvedLabels = resolveAbFieldLabels(config.labels)
-  const abVariantFields = originalFields.map((nestedField) => transformField(nestedField, config))
 
   transformed.fields = [
     ...transformedBaseFields,
     createAbToggleField(resolvedFieldNames, resolvedLabels),
     createAbTestRefField(resolvedFieldNames, resolvedLabels, config.abTestTypeName),
-    createAbVariantsField(abVariantFields, resolvedFieldNames, resolvedLabels),
+    createAbVariantsField(transformedBaseFields, resolvedFieldNames, resolvedLabels),
   ]
 
   return transformed

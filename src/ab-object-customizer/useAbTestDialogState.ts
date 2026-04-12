@@ -15,11 +15,14 @@ export function useAbTestDialogState(params: UseAbTestDialogStateParams) {
   const [isLoadingAbTests, setIsLoadingAbTests] = useState(false)
   const [abTests, setAbTests] = useState<AbTestDocument[]>([])
   const [selectedAbTestId, setSelectedAbTestId] = useState('')
-  const [selectedAbTestVariantCount, setSelectedAbTestVariantCount] = useState(0)
 
   const selectedAbTest = useMemo(
     () => abTests.find((test) => test._id === selectedAbTestId),
     [abTests, selectedAbTestId],
+  )
+  const selectedAbTestVariantCount = useMemo(
+    () => selectedAbTest?.variantCodes?.length ?? 0,
+    [selectedAbTest],
   )
 
   const openDialog = useCallback(async () => {
@@ -36,9 +39,6 @@ export function useAbTestDialogState(params: UseAbTestDialogStateParams) {
       const fallbackTestId = safeDocs[0]?._id ?? ''
       const nextSelectedTestId = currentAbTestRef ?? fallbackTestId
       setSelectedAbTestId(nextSelectedTestId)
-
-      const selectedDoc = safeDocs.find((doc) => doc._id === nextSelectedTestId)
-      setSelectedAbTestVariantCount(selectedDoc?.variantCodes?.length ?? 0)
     } finally {
       setIsLoadingAbTests(false)
     }
@@ -51,11 +51,8 @@ export function useAbTestDialogState(params: UseAbTestDialogStateParams) {
   const selectAbTest = useCallback(
     (nextTestId: string) => {
       setSelectedAbTestId(nextTestId)
-      const nextVariantsCount =
-        abTests.find((doc) => doc._id === nextTestId)?.variantCodes?.length ?? 0
-      setSelectedAbTestVariantCount(nextVariantsCount)
     },
-    [abTests],
+    [],
   )
 
   return {
