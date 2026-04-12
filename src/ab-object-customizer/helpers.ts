@@ -36,7 +36,7 @@ export function getFieldMemberByName(
   props: ObjectInputProps,
   fieldName: string,
 ): FieldMember | undefined {
-  const match = props.members.find((member) => member.kind === 'field' && member.name === fieldName)
-
-  return match?.kind === 'field' ? match : undefined
+  return props.members.find(
+    (member): member is FieldMember => member.kind === 'field' && member.name === fieldName,
+  )
 }

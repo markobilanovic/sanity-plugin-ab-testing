@@ -26,6 +26,18 @@ export function AbVariantConfigDialog(props: AbVariantConfigDialogProps) {
     onConfirm,
     onSelectAbTest,
   } = props
+  const hasTests = abTests.length > 0
+  const canConfirm = !isLoadingAbTests && Boolean(selectedAbTestId) && variantCodesCount > 0
+  let helperText = 'Select an AB test to continue.'
+  if (selectedAbTestId) {
+    if (variantCodesCount > 0) {
+      helperText = `Will create ${variantCodesCount} AB copies (one per variant code).`
+    } else {
+      helperText = 'Selected AB test has no variant codes.'
+    }
+  } else if (selectedAbTestVariantCount > 0) {
+    helperText = `Will create ${selectedAbTestVariantCount} AB copies.`
+  }
 
   if (!isOpen) {
     return null
@@ -44,7 +56,7 @@ export function AbVariantConfigDialog(props: AbVariantConfigDialogProps) {
             mode="default"
             tone="primary"
             text="Create AB variant copies"
-            disabled={isLoadingAbTests || !selectedAbTestId || variantCodesCount === 0}
+            disabled={!canConfirm}
             onClick={onConfirm}
           />
         </Flex>
@@ -57,12 +69,12 @@ export function AbVariantConfigDialog(props: AbVariantConfigDialogProps) {
           </Text>
           <Select
             value={selectedAbTestId}
-            disabled={isLoadingAbTests || abTests.length === 0}
+            disabled={isLoadingAbTests || !hasTests}
             onChange={(event) => {
               onSelectAbTest(event.currentTarget.value)
             }}
           >
-            {abTests.length === 0 ? <option value="">No AB tests found</option> : null}
+            {hasTests ? null : <option value="">No AB tests found</option>}
             {abTests.map((abTest) => (
               <option key={abTest._id} value={abTest._id}>
                 {abTest.name || abTest._id}
@@ -72,13 +84,7 @@ export function AbVariantConfigDialog(props: AbVariantConfigDialogProps) {
         </Stack>
 
         <Text muted size={1}>
-          {selectedAbTestId
-            ? variantCodesCount > 0
-              ? `Will create ${variantCodesCount} AB copies (one per variant code).`
-              : 'Selected AB test has no variant codes.'
-            : selectedAbTestVariantCount > 0
-              ? `Will create ${selectedAbTestVariantCount} AB copies.`
-              : 'Select an AB test to continue.'}
+          {helperText}
         </Text>
       </Stack>
     </Dialog>

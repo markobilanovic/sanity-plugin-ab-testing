@@ -4,37 +4,40 @@ import {AB_CONFIG_ACTION_EVENT_NAME} from '../abConfig'
 import {hasAbFields, isAbControlFieldPath, isFieldLevelCloneCandidate} from './helpers'
 import type {AbFieldNames} from './types'
 
-export function createConfigureAbVariantFieldAction(fieldNames: AbFieldNames) {
+export function createConfigureAbVariantFieldAction(
+  fieldNames: AbFieldNames,
+): ReturnType<typeof defineDocumentFieldAction> {
   return defineDocumentFieldAction({
     name: 'abObjectCloning/configureVariant',
-    useAction: ({path, schemaType}) => ({
-      type: 'action',
-      hidden:
-        isAbControlFieldPath(path as Path, fieldNames) ||
-        (!hasAbFields(schemaType, fieldNames) && !isFieldLevelCloneCandidate(path as Path)),
-      title: 'Configure AB variant',
-      onAction: () => {
-        if (typeof window === 'undefined') {
-          return
-        }
+    useAction: ({path, schemaType}) => {
+      const isControlFieldPath = isAbControlFieldPath(path as Path, fieldNames)
+      const isObjectLevelAction = hasAbFields(schemaType, fieldNames)
+      const canUseFieldLevelAction = isFieldLevelCloneCandidate(path as Path)
 
-        const isObjectLevelAction = hasAbFields(schemaType, fieldNames)
-        const targetPath = isObjectLevelAction ? path : path.slice(0, -1)
-        const selectedFieldName = isObjectLevelAction
-          ? undefined
-          : typeof path[path.length - 1] === 'string'
-            ? path[path.length - 1]
-            : undefined
+      return {
+        type: 'action',
+        hidden: isControlFieldPath || (!isObjectLevelAction && !canUseFieldLevelAction),
+        title: 'Configure AB variant',
+        onAction: () => {
+          if (typeof window === 'undefined') {
+            return
+          }
 
-        window.dispatchEvent(
-          new CustomEvent(AB_CONFIG_ACTION_EVENT_NAME, {
-            detail: {
-              targetPath,
-              selectedFieldName,
-            },
-          }),
-        )
-      },
-    }),
+          const targetPath = isObjectLevelAction ? path : path.slice(0, -1)
+          const lastSegment = path[path.length - 1] as unknown
+          const selectedFieldName =
+            !isObjectLevelAction && typeof lastSegment === 'string' ? lastSegment : undefined
+
+          window.dispatchEvent(
+            new CustomEvent(AB_CONFIG_ACTION_EVENT_NAME, {
+              detail: {
+                targetPath,
+                selectedFieldName,
+              },
+            }),
+          )
+        },
+      }
+    },
   })
 }

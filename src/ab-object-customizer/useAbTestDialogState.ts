@@ -48,12 +48,9 @@ export function useAbTestDialogState(params: UseAbTestDialogStateParams) {
     setIsDialogOpen(false)
   }, [])
 
-  const selectAbTest = useCallback(
-    (nextTestId: string) => {
-      setSelectedAbTestId(nextTestId)
-    },
-    [],
-  )
+  const selectAbTest = useCallback((nextTestId: string) => {
+    setSelectedAbTestId(nextTestId)
+  }, [])
 
   return {
     isDialogOpen,

@@ -1,6 +1,7 @@
-import {Fragment} from 'react'
 import {Stack} from '@sanity/ui'
+import {Fragment} from 'react'
 import {MemberField, type ObjectInputProps} from 'sanity'
+
 import {getSlotDescriptors, isFieldMember} from './slotDescriptors'
 import type {ObjectInputCustomizer, SlotDescriptor} from './types'
 
@@ -16,6 +17,15 @@ export function createComposedObjectInput(customizers: ObjectInputCustomizer[]) 
       renderInlineBlock,
       renderAnnotation,
     } = props
+    const memberRenderProps = {
+      renderInput,
+      renderField,
+      renderItem,
+      renderPreview,
+      renderBlock,
+      renderInlineBlock,
+      renderAnnotation,
+    }
 
     const fieldMembers = members.filter(isFieldMember)
     const slotDescriptors = getSlotDescriptors(fieldMembers, customizers)
@@ -39,16 +49,7 @@ export function createComposedObjectInput(customizers: ObjectInputCustomizer[]) 
             {descriptor.type === 'customizer' ? (
               descriptor.customizer.render(props, descriptor.member)
             ) : (
-              <MemberField
-                member={descriptor.member}
-                renderInput={renderInput}
-                renderField={renderField}
-                renderItem={renderItem}
-                renderPreview={renderPreview}
-                renderBlock={renderBlock}
-                renderInlineBlock={renderInlineBlock}
-                renderAnnotation={renderAnnotation}
-              />
+              <MemberField member={descriptor.member} {...memberRenderProps} />
             )}
           </Fragment>
         ))}
