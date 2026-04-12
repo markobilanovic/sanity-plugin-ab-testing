@@ -30,9 +30,9 @@ export default defineConfig({
         endpointPath: "/api/revalidate",
         documents: [
           {
-            type: "post",
-            pathPrefix: "post",
-            tagPrefix: "post",
+            type: "page",
+            pathPrefix: "page",
+            tagPrefix: "page",
           },
         ],
       },

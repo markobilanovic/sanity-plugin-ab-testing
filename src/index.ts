@@ -10,7 +10,7 @@ import {
 } from './ab-object-cloning/helpers'
 import {createPostHogAbTestAdapter} from './ab-object-cloning/posthogAdapter'
 import {
-  createPostPublishRevalidateAction,
+  createPublishRevalidateAction,
   resolveRevalidationConfig,
 } from './ab-object-cloning/revalidation'
 import {createAbTestType} from './ab-object-cloning/schema'
@@ -68,7 +68,7 @@ export const abObjectCloningPlugin = definePlugin<AbObjectCloningOptions | void>
             return action
           }
 
-          return createPostPublishRevalidateAction(action, schemaTypeName, revalidationConfig)
+          return createPublishRevalidateAction(action, schemaTypeName, revalidationConfig)
         })
       },
       unstable_fieldActions: (prev) => [

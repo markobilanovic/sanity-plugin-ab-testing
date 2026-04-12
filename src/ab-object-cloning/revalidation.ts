@@ -2,10 +2,9 @@ import type {DocumentActionComponent, DocumentActionProps} from 'sanity'
 
 import {
   DEFAULT_REVALIDATE_DELAY_MS,
-  DEFAULT_REVALIDATE_DOCUMENT_TYPE,
   DEFAULT_REVALIDATE_ENDPOINT_PATH,
 } from './constants'
-import {getCanonicalDocumentId, getPostSlug, normalizeNonEmptyString} from './helpers'
+import {getCanonicalDocumentId, getDocumentSlug, normalizeNonEmptyString} from './helpers'
 import type {ResolvedRevalidationConfig, RevalidationConfig} from './types'
 
 function buildRevalidationPath(pathPrefix: string | null, slug: string): string {
@@ -48,14 +47,6 @@ export function resolveRevalidationConfig(
       type,
       pathPrefix,
       tagPrefix,
-    })
-  }
-
-  if (documentsByType.size === 0) {
-    documentsByType.set(DEFAULT_REVALIDATE_DOCUMENT_TYPE, {
-      type: DEFAULT_REVALIDATE_DOCUMENT_TYPE,
-      pathPrefix: null,
-      tagPrefix: null,
     })
   }
 
@@ -111,7 +102,7 @@ async function triggerRevalidation(
   }
 }
 
-export function createPostPublishRevalidateAction(
+export function createPublishRevalidateAction(
   originalAction: DocumentActionComponent,
   documentType: string,
   revalidationConfig: ResolvedRevalidationConfig,
@@ -128,7 +119,7 @@ export function createPostPublishRevalidateAction(
       onHandle: () => {
         originalOnHandle?.()
 
-        const slug = getPostSlug(props.draft) ?? getPostSlug(props.published)
+        const slug = getDocumentSlug(props.draft) ?? getDocumentSlug(props.published)
         if (!slug) {
           return
         }

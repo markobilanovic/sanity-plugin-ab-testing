@@ -56,7 +56,7 @@ export type AbObjectCloningOptions = {
   revalidation?: RevalidationConfig | false
 }
 
-export type PostDocumentLike = {
+export type DocumentLike = {
   _id?: string
   slug?: {current?: string}
 }

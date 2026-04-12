@@ -1,5 +1,5 @@
 import type {Path} from 'sanity'
-import type {AbFieldNames, ObjectMembers, PostDocumentLike} from './types'
+import type {AbFieldNames, DocumentLike, ObjectMembers} from './types'
 
 export function normalizeNonEmptyStrings(input: unknown): string[] {
   if (!Array.isArray(input)) {
@@ -34,8 +34,8 @@ export function getCanonicalDocumentId(value: unknown): string | null {
   return id.startsWith('drafts.') ? id.slice('drafts.'.length) : id
 }
 
-export function getPostSlug(document: unknown): string | null {
-  const slugValue = (document as PostDocumentLike | undefined)?.slug?.current
+export function getDocumentSlug(document: unknown): string | null {
+  const slugValue = (document as DocumentLike | undefined)?.slug?.current
   return normalizeNonEmptyString(slugValue)
 }
 
