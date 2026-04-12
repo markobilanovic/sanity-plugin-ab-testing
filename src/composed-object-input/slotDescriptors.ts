@@ -9,35 +9,31 @@ export function getSlotDescriptors(
   fieldMembers: FieldMember[],
   customizers: ObjectInputCustomizer[],
 ): SlotDescriptor[] {
-  return fieldMembers.reduce<{rendered: Set<string>; slots: SlotDescriptor[]}>(
-    (acc, member) => {
-      if (acc.rendered.has(member.name)) {
-        return acc
-      }
+  const rendered = new Set<string>()
+  const slots: SlotDescriptor[] = []
 
-      const customizer = customizers.find((candidate) => candidate.matchField(member))
-      if (customizer) {
-        const claimedFieldNames = customizer.getClaimedFieldNames(member)
+  for (const member of fieldMembers) {
+    if (rendered.has(member.name)) {
+      continue
+    }
 
-        return {
-          rendered: new Set([...acc.rendered, ...claimedFieldNames]),
-          slots: [
-            ...acc.slots,
-            {
-              key: member.name,
-              type: 'customizer',
-              customizer,
-              member,
-            },
-          ],
-        }
+    const customizer = customizers.find((candidate) => candidate.matchField(member))
+    if (customizer) {
+      const claimedFieldNames = customizer.getClaimedFieldNames(member)
+      for (const claimedFieldName of claimedFieldNames) {
+        rendered.add(claimedFieldName)
       }
+      slots.push({
+        key: member.name,
+        type: 'customizer',
+        customizer,
+        member,
+      })
+      continue
+    }
 
-      return {
-        ...acc,
-        slots: [...acc.slots, {key: member.name, type: 'field', member}],
-      }
-    },
-    {rendered: new Set<string>(), slots: []},
-  ).slots
+    slots.push({key: member.name, type: 'field', member})
+  }
+
+  return slots
 }

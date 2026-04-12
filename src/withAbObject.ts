@@ -3,7 +3,9 @@ import {
   AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
   AB_VARIANTS_DISABLE_ACTIONS,
   type AbFieldLabelOverrides,
+  type AbFieldLabels,
   type AbFieldNameOverrides,
+  type AbFieldNames,
   DEFAULT_AB_TEST_TYPE_NAME,
   resolveAbFieldLabels,
   resolveAbFieldNames,
@@ -76,10 +78,7 @@ function transformNestedCollections(field: AnyField, config: WithAbObjectOptions
   return transformed
 }
 
-function createAbToggleField(options: WithAbObjectOptions): AnyField {
-  const fieldNames = resolveAbFieldNames(options.fieldNames)
-  const labels = resolveAbFieldLabels(options.labels)
-
+function createAbToggleField(fieldNames: AbFieldNames, labels: AbFieldLabels): AnyField {
   return {
     name: fieldNames.toggle,
     title: labels.toggle,
@@ -88,24 +87,27 @@ function createAbToggleField(options: WithAbObjectOptions): AnyField {
   }
 }
 
-function createAbTestRefField(options: WithAbObjectOptions): AnyField {
-  const fieldNames = resolveAbFieldNames(options.fieldNames)
-  const labels = resolveAbFieldLabels(options.labels)
-
+function createAbTestRefField(
+  fieldNames: AbFieldNames,
+  labels: AbFieldLabels,
+  abTestTypeName: string | undefined,
+): AnyField {
   return {
     name: fieldNames.testRef,
     title: labels.testRef,
     type: 'reference',
-    to: [{type: options.abTestTypeName ?? DEFAULT_AB_TEST_TYPE_NAME}],
+    to: [{type: abTestTypeName ?? DEFAULT_AB_TEST_TYPE_NAME}],
     options: {
       [AB_INTERNAL_OPTION]: true,
     },
   }
 }
 
-function createAbVariantsField(fields: AnyField[], options: WithAbObjectOptions): AnyField {
-  const fieldNames = resolveAbFieldNames(options.fieldNames)
-  const labels = resolveAbFieldLabels(options.labels)
+function createAbVariantsField(
+  fields: AnyField[],
+  fieldNames: AbFieldNames,
+  labels: AbFieldLabels,
+): AnyField {
   const variantFields: AnyField[] = [
     {
       name: AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
@@ -209,13 +211,15 @@ function transformAbContainerField(field: AnyField, config: WithAbObjectOptions)
     return transformed
   }
 
+  const resolvedFieldNames = resolveAbFieldNames(config.fieldNames)
+  const resolvedLabels = resolveAbFieldLabels(config.labels)
   const abVariantFields = originalFields.map((nestedField) => transformField(nestedField, config))
 
   transformed.fields = [
     ...transformedBaseFields,
-    createAbToggleField(config),
-    createAbTestRefField(config),
-    createAbVariantsField(abVariantFields, config),
+    createAbToggleField(resolvedFieldNames, resolvedLabels),
+    createAbTestRefField(resolvedFieldNames, resolvedLabels, config.abTestTypeName),
+    createAbVariantsField(abVariantFields, resolvedFieldNames, resolvedLabels),
   ]
 
   return transformed
