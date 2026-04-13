@@ -32,6 +32,8 @@ import {withAbObject} from './withAbObject'
  *   plugins: [abObjectCloningPlugin()],
  * })
  * ```
+ *
+ * @public
  */
 
 export const abObjectCloningPlugin = definePlugin<AbObjectCloningOptions | void>((options) => {

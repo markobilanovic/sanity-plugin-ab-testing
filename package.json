@@ -20,7 +20,6 @@
   "type": "commonjs",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "source": "./src/index.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",

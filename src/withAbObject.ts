@@ -239,6 +239,8 @@ function transformField(field: AnyField, options: WithAbObjectOptions): AnyField
  *
  * Usage:
  * `defineField(withAbObject({ name: "settings", type: "object", fields: [...] }))`
+ *
+ * @public
  */
 export function withAbObject<TField extends object>(
   field: TField,
