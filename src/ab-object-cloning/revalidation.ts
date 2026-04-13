@@ -1,9 +1,6 @@
 import type {DocumentActionComponent, DocumentActionProps} from 'sanity'
 
-import {
-  DEFAULT_REVALIDATE_DELAY_MS,
-  DEFAULT_REVALIDATE_ENDPOINT_PATH,
-} from './constants'
+import {DEFAULT_REVALIDATE_DELAY_MS, DEFAULT_REVALIDATE_ENDPOINT_PATH} from './constants'
 import {getCanonicalDocumentId, getDocumentSlug, normalizeNonEmptyString} from './helpers'
 import type {ResolvedRevalidationConfig, RevalidationConfig} from './types'
 

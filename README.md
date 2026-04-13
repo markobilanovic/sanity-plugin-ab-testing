@@ -1,6 +1,5 @@
 # sanity-plugin-ab-testing
 
-
 ## Installation
 
 ```sh

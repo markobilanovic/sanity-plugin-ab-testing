@@ -16,7 +16,7 @@ The plugin code is split by concern so each area can evolve independently:
 ## Install in Studio
 
 ```ts
-import { abObjectCloning } from "./src/sanity/plugins/abObjectCloning";
+import {abObjectCloning} from './src/sanity/plugins/abObjectCloning'
 
 export default defineConfig({
   plugins: [
@@ -27,18 +27,18 @@ export default defineConfig({
         personalApiKey: process.env.SANITY_STUDIO_POSTHOG_PERSONAL_API_KEY,
       },
       revalidation: {
-        endpointPath: "/api/revalidate",
+        endpointPath: '/api/revalidate',
         documents: [
           {
-            type: "page",
-            pathPrefix: "page",
-            tagPrefix: "page",
+            type: 'page',
+            pathPrefix: 'page',
+            tagPrefix: 'page',
           },
         ],
       },
     }),
   ],
-});
+})
 ```
 
 ## Plugin Options

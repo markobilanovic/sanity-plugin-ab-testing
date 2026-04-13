@@ -64,10 +64,9 @@ describe('createPublishRevalidateAction', () => {
     vi.useFakeTimers()
 
     const originalOnHandle = vi.fn()
-    const originalAction = Object.assign(
-      () => ({label: 'Publish', onHandle: originalOnHandle}),
-      {action: 'publish' as any},
-    ) as DocumentActionComponent
+    const originalAction = Object.assign(() => ({label: 'Publish', onHandle: originalOnHandle}), {
+      action: 'publish' as any,
+    }) as DocumentActionComponent
 
     const action = createPublishRevalidateAction(originalAction, 'post', baseConfig!)
 
