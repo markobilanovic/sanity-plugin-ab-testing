@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 
 import {
   AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
@@ -114,5 +114,87 @@ describe('withAbObject', () => {
     const hiddenFn = decoratedTitleField?.hidden as (ctx: {parent?: unknown}) => boolean
 
     expect(hiddenFn({parent: {[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['title']}})).toBe(true)
+  })
+
+  it('skips validation for unselected variant fields', () => {
+    const inputField = {
+      name: 'settings',
+      type: 'object',
+      fields: [
+        {
+          name: 'title',
+          type: 'string',
+          validation: (rule: {required: () => unknown}) => rule.required(),
+        },
+      ],
+    }
+
+    const result = withAbObject(inputField)
+    const resultFields = (result as AnyField).fields ?? []
+    const variantsField = findField(resultFields, fieldNames.variants) as AnyField
+    const variantEntry = variantsField.of?.[0] as AnyField
+    const variantObject = (variantEntry.fields ?? []).find(
+      (field) => field.name === fieldNames.variant,
+    ) as AnyField
+    const variantFields = variantObject.fields ?? []
+    const decoratedTitleField = findField(variantFields, 'title') as AnyField
+
+    const requiredSpy = vi.fn().mockReturnValue('required-result')
+    const skipSpy = vi.fn().mockReturnValue('skip-result')
+    const validationFn = decoratedTitleField.validation as (
+      rule: {required: () => unknown; skip: () => unknown},
+      context?: {parent?: unknown},
+    ) => unknown
+
+    const resultValue = validationFn(
+      {required: requiredSpy, skip: skipSpy},
+      {parent: {[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['body']}},
+    )
+
+    expect(skipSpy).toHaveBeenCalledTimes(1)
+    expect(requiredSpy).not.toHaveBeenCalled()
+    expect(resultValue).toBe('skip-result')
+  })
+
+  it('keeps validation active when field is selected', () => {
+    const inputField = {
+      name: 'settings',
+      type: 'object',
+      fields: [
+        {
+          name: 'title',
+          type: 'string',
+          validation: (rule: {required: () => unknown}) => rule.required(),
+        },
+      ],
+    }
+
+    const result = withAbObject(inputField)
+    const resultFields = (result as AnyField).fields ?? []
+    const variantsField = findField(resultFields, fieldNames.variants) as AnyField
+    const variantEntry = variantsField.of?.[0] as AnyField
+    const variantObject = (variantEntry.fields ?? []).find(
+      (field) => field.name === fieldNames.variant,
+    ) as AnyField
+    const variantFields = variantObject.fields ?? []
+    const decoratedTitleField = findField(variantFields, 'title') as AnyField
+
+    const requiredSpy = vi.fn().mockReturnValue('required-result')
+    const skipSpy = vi.fn().mockReturnValue('skip-result')
+    const validationFn = decoratedTitleField.validation as (
+      rule: {required: () => unknown; skip: () => unknown},
+      context?: {parent?: unknown},
+    ) => unknown
+
+    const selectedResult = validationFn(
+      {required: requiredSpy, skip: skipSpy},
+      {parent: {[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['title']}},
+    )
+    const unscopedResult = validationFn({required: requiredSpy, skip: skipSpy}, {parent: {}})
+
+    expect(requiredSpy).toHaveBeenCalledTimes(2)
+    expect(skipSpy).not.toHaveBeenCalled()
+    expect(selectedResult).toBe('required-result')
+    expect(unscopedResult).toBe('required-result')
   })
 })

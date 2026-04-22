@@ -17,7 +17,14 @@ import {
   DEFAULT_STUDIO_API_VERSION,
 } from '../abConfig'
 import {AbVariantConfigDialog} from './AbVariantConfigDialog'
-import {cloneValue, getControlVariantSeed, getFieldMemberByName, pathToKey} from './helpers'
+import {
+  cloneValue,
+  createSelectionScopedVariantRecord,
+  getControlVariantSeed,
+  getFieldMemberByName,
+  normalizeSelectedVariantFields,
+  pathToKey,
+} from './helpers'
 import type {AbVariantItem} from './types'
 import {useAbTestDialogState} from './useAbTestDialogState'
 
@@ -146,49 +153,44 @@ export function AbObjectCustomizerField({
         let hasChanges = false
         let updatedVariantsCount = 0
         const nextVariants: AbVariantItem[] = currentVariants.map((item) => {
-          const variantRecord =
+          const currentVariantRecord =
             item.variant && typeof item.variant === 'object'
               ? (cloneValue(item.variant) as Record<string, unknown>)
               : {}
-          let variantChanged = false
 
-          const selectedFields = variantRecord[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME] as unknown
-          const selectedFieldSet = Array.isArray(selectedFields)
-            ? new Set(
-                selectedFields.filter(
-                  (fieldValue): fieldValue is string =>
-                    typeof fieldValue === 'string' && Boolean(fieldValue.trim()),
-                ),
-              )
-            : new Set(
-                Object.keys(variantRecord).filter(
-                  (fieldName) => fieldName !== AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
-                ),
-              )
+          const selectedFields = normalizeSelectedVariantFields(
+            currentVariantRecord[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME],
+          )
+          const selectedFieldSet =
+            selectedFields.length > 0
+              ? new Set(selectedFields)
+              : new Set(
+                  Object.keys(currentVariantRecord).filter(
+                    (fieldName) => fieldName !== AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
+                  ),
+                )
 
           if (!selectedFieldSet.has(selectedField)) {
             selectedFieldSet.add(selectedField)
-            hasChanges = true
-            variantChanged = true
           }
 
-          if (
-            !Object.prototype.hasOwnProperty.call(variantRecord, selectedField) &&
-            Object.prototype.hasOwnProperty.call(controlVariantSeed, selectedField)
-          ) {
-            variantRecord[selectedField] = cloneValue(controlVariantSeed[selectedField])
-            hasChanges = true
-            variantChanged = true
-          }
+          const selectedFieldNames = Array.from(selectedFieldSet)
+          const nextVariantRecord = createSelectionScopedVariantRecord(
+            selectedFieldNames,
+            currentVariantRecord,
+            controlVariantSeed,
+          )
 
-          variantRecord[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME] = Array.from(selectedFieldSet)
+          const variantChanged =
+            JSON.stringify(nextVariantRecord) !== JSON.stringify(currentVariantRecord)
           if (variantChanged) {
+            hasChanges = true
             updatedVariantsCount += 1
           }
 
           return {
             ...item,
-            variant: variantRecord,
+            variant: nextVariantRecord,
           }
         })
 
@@ -249,12 +251,9 @@ export function AbObjectCustomizerField({
       _type: fieldNames.variantEntryType,
       abTestName: selectedAbTestName,
       variantCode: code,
-      variant: {
-        ...cloneValue(variantSeed),
-        [AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: selectedFieldName
-          ? [selectedFieldName]
-          : undefined,
-      },
+      variant: selectedFieldName
+        ? createSelectionScopedVariantRecord([selectedFieldName], cloneValue(variantSeed), controlVariantSeed)
+        : cloneValue(variantSeed),
     }))
 
     onChange(

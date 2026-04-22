@@ -19,6 +19,53 @@ type AnyField = Record<string, unknown> & {
   fields?: AnyField[]
   of?: AnyField[]
   options?: unknown
+  validation?: unknown
+}
+
+type SelectionAwareContext = {
+  parent?: unknown
+}
+
+function getSelectedVariantFieldSet(parent: unknown): Set<string> | null {
+  const parentRecord = parent as Record<string, unknown> | undefined
+  const selectedFields = parentRecord?.[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME] as unknown
+  if (!Array.isArray(selectedFields)) {
+    return null
+  }
+
+  return new Set(
+    selectedFields.filter((value): value is string => typeof value === 'string' && Boolean(value)),
+  )
+}
+
+function shouldSkipValidationForField(fieldName: string | undefined, parent: unknown): boolean {
+  if (typeof fieldName !== 'string') {
+    return false
+  }
+
+  const selectedFieldSet = getSelectedVariantFieldSet(parent)
+  return selectedFieldSet !== null && !selectedFieldSet.has(fieldName)
+}
+
+function decorateVariantFieldValidation(field: AnyField): AnyField['validation'] {
+  const existingValidation = field.validation
+  const fieldName = field.name
+
+  return (rule: {skip?: () => unknown}, context?: SelectionAwareContext) => {
+    if (shouldSkipValidationForField(fieldName, context?.parent)) {
+      return typeof rule?.skip === 'function' ? rule.skip() : rule
+    }
+
+    if (typeof existingValidation === 'function') {
+      return existingValidation(rule, context)
+    }
+
+    if (existingValidation !== undefined) {
+      return existingValidation
+    }
+
+    return rule
+  }
 }
 
 function decorateVariantFieldsWithSelectionVisibility(fields: AnyField[]): AnyField[] {
@@ -27,15 +74,7 @@ function decorateVariantFieldsWithSelectionVisibility(fields: AnyField[]): AnyFi
     const existingHidden = field.hidden
 
     decorated.hidden = (context: {parent?: unknown}) => {
-      const parent = context.parent as Record<string, unknown> | undefined
-      const selectedFields = parent?.[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME] as unknown
-      const selectedFieldSet = Array.isArray(selectedFields)
-        ? new Set(
-            selectedFields.filter(
-              (value): value is string => typeof value === 'string' && Boolean(value),
-            ),
-          )
-        : null
+      const selectedFieldSet = getSelectedVariantFieldSet(context.parent)
 
       const isHiddenBySelection =
         selectedFieldSet !== null &&
@@ -49,6 +88,7 @@ function decorateVariantFieldsWithSelectionVisibility(fields: AnyField[]): AnyFi
 
       return isHiddenBySelection || isHiddenByExistingRule
     }
+    decorated.validation = decorateVariantFieldValidation(field)
 
     if (Array.isArray(field.fields)) {
       decorated.fields = decorateVariantFieldsWithSelectionVisibility(field.fields)
