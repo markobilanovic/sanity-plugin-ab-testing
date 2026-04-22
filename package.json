@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-ab-testing",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Define A/B tests in Sanity by creating content variants directly in the CMS.",
   "keywords": [
     "sanity",
