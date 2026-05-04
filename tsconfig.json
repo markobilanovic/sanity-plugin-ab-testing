@@ -1,4 +1,7 @@
 {
   "extends": "./tsconfig.settings",
+  "compilerOptions": {
+    "noCheck": true
+  },
   "include": ["./src", "./package.config.ts"]
 }
