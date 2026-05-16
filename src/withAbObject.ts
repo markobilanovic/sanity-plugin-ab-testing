@@ -50,6 +50,11 @@ function shouldSkipValidationForField(fieldName: string | undefined, parent: unk
 function decorateVariantFieldValidation(field: AnyField): AnyField['validation'] {
   const existingValidation = field.validation
   const fieldName = field.name
+  const shouldPreserveValidation = field.type === 'array'
+
+  if (shouldPreserveValidation) {
+    return existingValidation
+  }
 
   return (rule: {skip?: () => unknown}, context?: SelectionAwareContext) => {
     if (shouldSkipValidationForField(fieldName, context?.parent)) {

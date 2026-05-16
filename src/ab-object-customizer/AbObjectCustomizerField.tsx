@@ -252,7 +252,11 @@ export function AbObjectCustomizerField({
       abTestName: selectedAbTestName,
       variantCode: code,
       variant: selectedFieldName
-        ? createSelectionScopedVariantRecord([selectedFieldName], cloneValue(variantSeed), controlVariantSeed)
+        ? createSelectionScopedVariantRecord(
+            [selectedFieldName],
+            cloneValue(variantSeed),
+            controlVariantSeed,
+          )
         : cloneValue(variantSeed),
     }))
 

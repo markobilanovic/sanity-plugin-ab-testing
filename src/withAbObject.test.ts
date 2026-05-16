@@ -197,4 +197,33 @@ describe('withAbObject', () => {
     expect(selectedResult).toBe('required-result')
     expect(unscopedResult).toBe('required-result')
   })
+
+  it('preserves array validation without selection-aware wrapping', () => {
+    const arrayValidation = vi.fn((rule: {max: (count: number) => unknown}) => rule.max(1))
+    const inputField = {
+      name: 'settings',
+      type: 'object',
+      fields: [
+        {
+          name: 'items',
+          type: 'array',
+          of: [{type: 'string'}],
+          validation: arrayValidation,
+        },
+      ],
+    }
+
+    const result = withAbObject(inputField)
+    const resultFields = (result as AnyField).fields ?? []
+    const variantsField = findField(resultFields, fieldNames.variants) as AnyField
+    const variantEntry = variantsField.of?.[0] as AnyField
+    const variantObject = (variantEntry.fields ?? []).find(
+      (field) => field.name === fieldNames.variant,
+    ) as AnyField
+    const variantFields = variantObject.fields ?? []
+    const decoratedItemsField = findField(variantFields, 'items') as AnyField
+
+    expect(decoratedItemsField.validation).toBe(arrayValidation)
+    expect((decoratedItemsField.validation as Function).length).toBe(1)
+  })
 })

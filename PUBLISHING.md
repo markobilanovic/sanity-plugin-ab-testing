@@ -98,4 +98,3 @@ npm publish --access public --otp=123456
 ```sh
 npm version patch && git push && git push --tags && npm publish --access public
 ```
-
