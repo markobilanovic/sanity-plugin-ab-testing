@@ -1,5 +1,5 @@
 import React from 'react'
-import {definePlugin, isObjectInputProps} from 'sanity'
+import {definePlugin, isObjectInputProps, type ObjectInputProps} from 'sanity'
 
 import {createConfigureAbVariantFieldAction} from './ab-object-cloning/fieldActions'
 import {
@@ -105,16 +105,21 @@ export const abObjectCloningPlugin = definePlugin<AbObjectCloningOptions | void>
             return props.renderDefault(props)
           }
 
-          // Respect object schemas with explicit custom inputs.
-          if (props.schemaType?.components?.input) {
-            return props.renderDefault(props)
-          }
+          if (
+            hasAbFieldMembers(props.members, fieldNames) ||
+            hasAbFields(props.schemaType, fieldNames)
+          ) {
+            const customInput = props.schemaType?.components?.input
+            const renderWithAbControls = (inputProps: ObjectInputProps) =>
+              React.createElement(abComposedObjectInput, inputProps)
 
-          if (hasAbFieldMembers(props.members, fieldNames)) {
-            return React.createElement(abComposedObjectInput, props)
-          }
+            if (customInput) {
+              return React.createElement(customInput, {
+                ...props,
+                renderDefault: renderWithAbControls,
+              })
+            }
 
-          if (hasAbFields(props.schemaType, fieldNames)) {
             return React.createElement(abComposedObjectInput, props)
           }
 
