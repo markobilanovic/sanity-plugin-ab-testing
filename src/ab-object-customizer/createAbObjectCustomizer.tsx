@@ -1,8 +1,10 @@
 import {createElement} from 'react'
 import {
   DEFAULT_AB_TEST_TYPE_NAME,
+  DEFAULT_AB_OBJECT_CLONE_MODE,
   resolveAbFieldNames,
   type AbFieldNameOverrides,
+  type AbObjectCloneMode,
 } from '../abConfig'
 import type {ObjectInputCustomizer} from '../composed-object-input'
 import {AbObjectCustomizerField} from './AbObjectCustomizerField'
@@ -10,6 +12,7 @@ import {AbObjectCustomizerField} from './AbObjectCustomizerField'
 export type AbObjectCustomizerOptions = {
   abTestTypeName?: string
   fieldNames?: AbFieldNameOverrides
+  cloneMode?: AbObjectCloneMode
 }
 
 export function createAbObjectCustomizer(
@@ -17,6 +20,7 @@ export function createAbObjectCustomizer(
 ): ObjectInputCustomizer {
   const fieldNames = resolveAbFieldNames(options.fieldNames)
   const abTestTypeName = options.abTestTypeName ?? DEFAULT_AB_TEST_TYPE_NAME
+  const cloneMode = options.cloneMode ?? DEFAULT_AB_OBJECT_CLONE_MODE
 
   return {
     matchField: (member) => member.name === fieldNames.toggle,
@@ -26,6 +30,7 @@ export function createAbObjectCustomizer(
         props,
         fieldNames,
         abTestTypeName,
+        cloneMode,
       }),
   }
 }

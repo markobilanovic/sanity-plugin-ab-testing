@@ -41,6 +41,16 @@ describe('createConfigureAbVariantFieldAction', () => {
     expect(result.hidden).toBe(false)
   })
 
+  it('hides field-level actions when all fields are cloned', () => {
+    const action = createConfigureAbVariantFieldAction(fieldNames, {cloneMode: 'allFields'})
+    const result = action.useAction({
+      path: ['root', 'title'],
+      schemaType: {fields: []},
+    } as any) as any
+
+    expect(result.hidden).toBe(true)
+  })
+
   it('dispatches config event with target path and selected field', () => {
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
     const action = createConfigureAbVariantFieldAction(fieldNames)

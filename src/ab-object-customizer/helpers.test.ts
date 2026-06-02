@@ -1,7 +1,13 @@
 import {describe, expect, it} from 'vitest'
 
-import {AB_SELECTED_VARIANT_FIELDS_FIELD_NAME} from '../abConfig'
-import {createSelectionScopedVariantRecord, normalizeSelectedVariantFields} from './helpers'
+import {AB_SELECTED_VARIANT_FIELDS_FIELD_NAME, resolveAbFieldNames} from '../abConfig'
+import {
+  createSelectionScopedVariantRecord,
+  getControlVariantSeed,
+  normalizeSelectedVariantFields,
+} from './helpers'
+
+const fieldNames = resolveAbFieldNames()
 
 describe('ab-object-customizer helpers', () => {
   it('normalizes selected field names', () => {
@@ -23,6 +29,7 @@ describe('ab-object-customizer helpers', () => {
         body: [{_type: 'block', children: []}],
         slug: {current: 'hello'},
       },
+      fieldNames,
     )
 
     expect(result).toEqual({
@@ -42,11 +49,50 @@ describe('ab-object-customizer helpers', () => {
       {
         slug: {current: 'from-control'},
       },
+      fieldNames,
     )
 
     expect(result).toEqual({
       slug: {current: 'from-control'},
       [AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['slug'],
+    })
+  })
+
+  it('removes AB payload fields recursively from control variant seed', () => {
+    const result = getControlVariantSeed(
+      {
+        title: 'A',
+        [fieldNames.toggle]: true,
+        [fieldNames.testRef]: {_ref: 'test'},
+        [fieldNames.variants]: [{variantCode: 'B'}],
+        nested: {
+          headline: 'Nested',
+          [fieldNames.toggle]: true,
+          [fieldNames.testRef]: {_ref: 'nested-test'},
+          [AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['headline'],
+        },
+        blocks: [
+          {
+            _type: 'block',
+            children: [],
+            [fieldNames.variants]: [{variantCode: 'C'}],
+          },
+        ],
+      },
+      fieldNames,
+    )
+
+    expect(result).toEqual({
+      title: 'A',
+      nested: {
+        headline: 'Nested',
+      },
+      blocks: [
+        {
+          _type: 'block',
+          children: [],
+        },
+      ],
     })
   })
 })

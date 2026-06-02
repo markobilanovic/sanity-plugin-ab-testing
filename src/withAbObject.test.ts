@@ -1,6 +1,7 @@
 import {describe, expect, it, vi} from 'vitest'
 
 import {
+  AB_CLONE_MODE_OPTION,
   AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
   AB_VARIANTS_DISABLE_ACTIONS,
   resolveAbFieldNames,
@@ -92,6 +93,47 @@ describe('withAbObject', () => {
 
     expect(hiddenFn({parent: {[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['title']}})).toBe(false)
     expect(hiddenFn({parent: {[AB_SELECTED_VARIANT_FIELDS_FIELD_NAME]: ['other']}})).toBe(true)
+  })
+
+  it('can clone all fields without selection-aware variant fields', () => {
+    const inputField = {
+      name: 'settings',
+      type: 'object',
+      fields: [
+        {name: 'title', type: 'string'},
+        {
+          name: 'nested',
+          type: 'object',
+          fields: [
+            {name: 'headline', type: 'string'},
+            {name: fieldNames.toggle, type: 'boolean'},
+          ],
+        },
+      ],
+    }
+
+    const result = withAbObject(inputField, {cloneMode: 'allFields'})
+    const resultFields = (result as AnyField).fields ?? []
+    const variantsField = findField(resultFields, fieldNames.variants) as AnyField
+    const variantEntry = variantsField.of?.[0] as AnyField
+    const variantObject = (variantEntry.fields ?? []).find(
+      (field) => field.name === fieldNames.variant,
+    ) as AnyField
+
+    const variantFields = variantObject.fields ?? []
+
+    expect((result as AnyField).options?.[AB_CLONE_MODE_OPTION]).toBe('allFields')
+    expect(findField(variantFields, AB_SELECTED_VARIANT_FIELDS_FIELD_NAME)).toBeFalsy()
+    expect(findField(variantFields, 'title')?.hidden).toBeUndefined()
+    expect(
+      findField((findField(variantFields, 'nested')?.fields as AnyField[]) ?? [], 'headline'),
+    ).toBeTruthy()
+    expect(
+      findField(
+        (findField(variantFields, 'nested')?.fields as AnyField[]) ?? [],
+        fieldNames.toggle,
+      ),
+    ).toBeFalsy()
   })
 
   it('preserves existing hidden rules on variant fields', () => {

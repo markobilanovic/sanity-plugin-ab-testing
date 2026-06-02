@@ -31,6 +31,18 @@ export const schema: {types: SchemaTypeDefinition[]} = {
 }
 ```
 
+To make AB variants clone every field instead of selecting individual fields:
+
+```ts
+types: [withAbObject(postType, {cloneMode: 'allFields'})]
+```
+
+When using the plugin-level schema transform:
+
+```ts
+plugins: [abObjectCloningPlugin({cloneMode: 'allFields'})]
+```
+
 ## License
 
 [MIT](LICENSE) © Marko Bilanović

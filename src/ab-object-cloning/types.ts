@@ -1,6 +1,6 @@
 import type {ObjectInputProps} from 'sanity'
 
-import type {AbFieldNameOverrides} from '../abConfig'
+import type {AbFieldNameOverrides, AbObjectCloneMode} from '../abConfig'
 
 export type {AbFieldNames} from '../abConfig'
 
@@ -53,6 +53,7 @@ export type AbObjectCloningOptions = {
   posthog?: PostHogAdapterOptions
   abTestTypeName?: string
   fieldNames?: AbFieldNameOverrides
+  cloneMode?: AbObjectCloneMode
   revalidation?: RevalidationConfig | false
 }
 

@@ -11,13 +11,17 @@ import {
 } from 'sanity'
 
 import {
+  AB_CLONE_MODE_OPTION,
   AB_CONFIG_ACTION_EVENT_NAME,
   AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
   type AbFieldNames,
+  type AbObjectCloneMode,
   DEFAULT_STUDIO_API_VERSION,
+  resolveAbObjectCloneMode,
 } from '../abConfig'
 import {AbVariantConfigDialog} from './AbVariantConfigDialog'
 import {
+  cloneContentValue,
   cloneValue,
   createSelectionScopedVariantRecord,
   getControlVariantSeed,
@@ -32,6 +36,7 @@ type AbObjectCustomizerFieldProps = {
   props: ObjectInputProps
   fieldNames: AbFieldNames
   abTestTypeName: string
+  cloneMode: AbObjectCloneMode
 }
 
 type FieldActionResultDialogState = {
@@ -46,6 +51,7 @@ export function AbObjectCustomizerField({
   props,
   fieldNames,
   abTestTypeName,
+  cloneMode,
 }: AbObjectCustomizerFieldProps): ReactElement {
   const {
     renderInput,
@@ -78,8 +84,15 @@ export function AbObjectCustomizerField({
   const [selectedFieldName, setSelectedFieldName] = useState<string | null>(null)
   const [fieldActionResultDialog, setFieldActionResultDialog] =
     useState<FieldActionResultDialogState | null>(null)
+  const schemaCloneMode = resolveAbObjectCloneMode(
+    (props.schemaType as {options?: Record<string, unknown>} | undefined)?.options?.[
+      AB_CLONE_MODE_OPTION
+    ],
+  )
+  const effectiveCloneMode = schemaCloneMode ?? cloneMode
+  const shouldSelectSingleField = effectiveCloneMode === 'selectedFields'
   const variantSeed = useMemo(() => {
-    if (!selectedFieldName) {
+    if (!shouldSelectSingleField || !selectedFieldName) {
       return controlVariantSeed
     }
 
@@ -90,7 +103,7 @@ export function AbObjectCustomizerField({
     return cloneValue({
       [selectedFieldName]: controlVariantSeed[selectedFieldName],
     })
-  }, [controlVariantSeed, selectedFieldName])
+  }, [controlVariantSeed, selectedFieldName, shouldSelectSingleField])
   const shouldShowAbVariant = Boolean(
     valueRecord &&
     typeof valueRecord[fieldNames.toggle] === 'boolean' &&
@@ -149,7 +162,12 @@ export function AbObjectCustomizerField({
 
       // Field-level action on an already configured AB object should extend existing
       // variants directly, without reopening AB test selection.
-      if (selectedField && shouldShowAbVariant && currentVariants.length > 0) {
+      if (
+        shouldSelectSingleField &&
+        selectedField &&
+        shouldShowAbVariant &&
+        currentVariants.length > 0
+      ) {
         let hasChanges = false
         let updatedVariantsCount = 0
         const nextVariants: AbVariantItem[] = currentVariants.map((item) => {
@@ -179,6 +197,7 @@ export function AbObjectCustomizerField({
             selectedFieldNames,
             currentVariantRecord,
             controlVariantSeed,
+            fieldNames,
           )
 
           const variantChanged =
@@ -215,7 +234,7 @@ export function AbObjectCustomizerField({
         return
       }
 
-      setSelectedFieldName(selectedField)
+      setSelectedFieldName(shouldSelectSingleField ? selectedField : null)
       openDialog()
     }
 
@@ -234,6 +253,7 @@ export function AbObjectCustomizerField({
     openDialog,
     props.path,
     shouldShowAbVariant,
+    shouldSelectSingleField,
   ])
 
   const handleCloseDialog = () => {
@@ -251,13 +271,15 @@ export function AbObjectCustomizerField({
       _type: fieldNames.variantEntryType,
       abTestName: selectedAbTestName,
       variantCode: code,
-      variant: selectedFieldName
-        ? createSelectionScopedVariantRecord(
-            [selectedFieldName],
-            cloneValue(variantSeed),
-            controlVariantSeed,
-          )
-        : cloneValue(variantSeed),
+      variant:
+        shouldSelectSingleField && selectedFieldName
+          ? createSelectionScopedVariantRecord(
+              [selectedFieldName],
+              cloneValue(variantSeed),
+              controlVariantSeed,
+              fieldNames,
+            )
+          : cloneContentValue(variantSeed, fieldNames),
     }))
 
     onChange(

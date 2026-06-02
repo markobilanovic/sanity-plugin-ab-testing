@@ -1,18 +1,22 @@
 import {defineDocumentFieldAction, type Path} from 'sanity'
 
-import {AB_CONFIG_ACTION_EVENT_NAME} from '../abConfig'
+import {AB_CONFIG_ACTION_EVENT_NAME, type AbObjectCloneMode} from '../abConfig'
 import {hasAbFields, isAbControlFieldPath, isFieldLevelCloneCandidate} from './helpers'
 import type {AbFieldNames} from './types'
 
 export function createConfigureAbVariantFieldAction(
   fieldNames: AbFieldNames,
+  options: {cloneMode?: AbObjectCloneMode} = {},
 ): ReturnType<typeof defineDocumentFieldAction> {
+  const cloneMode = options.cloneMode ?? 'selectedFields'
+
   return defineDocumentFieldAction({
     name: 'abObjectCloning/configureVariant',
     useAction: ({path, schemaType}) => {
       const isControlFieldPath = isAbControlFieldPath(path as Path, fieldNames)
       const isObjectLevelAction = hasAbFields(schemaType, fieldNames)
-      const canUseFieldLevelAction = isFieldLevelCloneCandidate(path as Path)
+      const canUseFieldLevelAction =
+        cloneMode === 'selectedFields' && isFieldLevelCloneCandidate(path as Path)
 
       return {
         type: 'action',

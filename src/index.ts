@@ -16,7 +16,11 @@ import {
 import {createAbTestType} from './ab-object-cloning/schema'
 import type {AbObjectCloningOptions} from './ab-object-cloning/types'
 import {createAbObjectCustomizer} from './ab-object-customizer'
-import {DEFAULT_AB_TEST_TYPE_NAME, resolveAbFieldNames} from './abConfig'
+import {
+  DEFAULT_AB_OBJECT_CLONE_MODE,
+  DEFAULT_AB_TEST_TYPE_NAME,
+  resolveAbFieldNames,
+} from './abConfig'
 import {createComposedObjectInput} from './composed-object-input'
 import {withAbObject} from './withAbObject'
 
@@ -42,13 +46,15 @@ export const abObjectCloningPlugin = definePlugin<AbObjectCloningOptions | void>
   const abTestTypeName =
     normalizeNonEmptyString(resolvedOptions.abTestTypeName) ?? DEFAULT_AB_TEST_TYPE_NAME
   const fieldNames = resolveAbFieldNames(resolvedOptions.fieldNames)
+  const cloneMode = resolvedOptions.cloneMode ?? DEFAULT_AB_OBJECT_CLONE_MODE
   const revalidationConfig = resolveRevalidationConfig(resolvedOptions.revalidation)
   const abTestType = createAbTestType(abTestTypeName, adapter)
-  const configureAbVariantFieldAction = createConfigureAbVariantFieldAction(fieldNames)
+  const configureAbVariantFieldAction = createConfigureAbVariantFieldAction(fieldNames, {cloneMode})
   const abComposedObjectInput = createComposedObjectInput([
     createAbObjectCustomizer({
       abTestTypeName,
       fieldNames: resolvedOptions.fieldNames,
+      cloneMode,
     }),
   ])
 
@@ -94,6 +100,7 @@ export const abObjectCloningPlugin = definePlugin<AbObjectCloningOptions | void>
           return withAbObject(schemaType, {
             abTestTypeName,
             fieldNames: resolvedOptions.fieldNames,
+            cloneMode,
           })
         })
       },

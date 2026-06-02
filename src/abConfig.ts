@@ -1,6 +1,7 @@
 export const DEFAULT_AB_TEST_TYPE_NAME = 'abTest'
 export const AB_CONFIG_ACTION_EVENT_NAME = 'abObjectCloning:openConfigDialog'
 export const AB_INTERNAL_OPTION = '__abInternal'
+export const AB_CLONE_MODE_OPTION = '__abCloneMode'
 export const AB_SELECTED_VARIANT_FIELDS_FIELD_NAME = 'abSelectedVariantFields'
 export const AB_VARIANTS_DISABLE_ACTIONS = [
   'add',
@@ -10,6 +11,13 @@ export const AB_VARIANTS_DISABLE_ACTIONS = [
   'duplicate',
 ] as const
 export const DEFAULT_STUDIO_API_VERSION = '2025-01-01'
+export const DEFAULT_AB_OBJECT_CLONE_MODE = 'selectedFields'
+
+export type AbObjectCloneMode = 'selectedFields' | 'allFields'
+
+export function resolveAbObjectCloneMode(input: unknown): AbObjectCloneMode | null {
+  return input === 'selectedFields' || input === 'allFields' ? input : null
+}
 
 export const DEFAULT_AB_FIELD_NAMES = {
   toggle: 'showAbVariant',

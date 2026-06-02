@@ -1,11 +1,14 @@
 import {
+  AB_CLONE_MODE_OPTION,
   AB_INTERNAL_OPTION,
   AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
   AB_VARIANTS_DISABLE_ACTIONS,
+  DEFAULT_AB_OBJECT_CLONE_MODE,
   type AbFieldLabelOverrides,
   type AbFieldLabels,
   type AbFieldNameOverrides,
   type AbFieldNames,
+  type AbObjectCloneMode,
   DEFAULT_AB_TEST_TYPE_NAME,
   resolveAbFieldLabels,
   resolveAbFieldNames,
@@ -107,6 +110,47 @@ export type WithAbObjectOptions = {
   abTestTypeName?: string
   fieldNames?: AbFieldNameOverrides
   labels?: AbFieldLabelOverrides
+  cloneMode?: AbObjectCloneMode
+}
+
+function getAbPayloadFieldNames(fieldNames: AbFieldNames): Set<string> {
+  return new Set([
+    AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
+    fieldNames.toggle,
+    fieldNames.variants,
+    fieldNames.variant,
+    fieldNames.testRef,
+    fieldNames.testName,
+    fieldNames.variantCode,
+  ])
+}
+
+function removeAbPayloadFieldsFromSchema(fields: AnyField[], fieldNames: AbFieldNames): AnyField[] {
+  const abPayloadFieldNames = getAbPayloadFieldNames(fieldNames)
+
+  return fields
+    .filter((field) => typeof field.name !== 'string' || !abPayloadFieldNames.has(field.name))
+    .map((field) => {
+      const nextField: AnyField = {...field}
+
+      if (Array.isArray(field.fields)) {
+        nextField.fields = removeAbPayloadFieldsFromSchema(field.fields, fieldNames)
+      }
+
+      if (Array.isArray(field.of)) {
+        nextField.of = field.of.map((nestedType) => {
+          const nextNestedType: AnyField = {...nestedType}
+
+          if (Array.isArray(nestedType.fields)) {
+            nextNestedType.fields = removeAbPayloadFieldsFromSchema(nestedType.fields, fieldNames)
+          }
+
+          return nextNestedType
+        })
+      }
+
+      return nextField
+    })
 }
 
 function transformNestedCollections(field: AnyField, config: WithAbObjectOptions): AnyField {
@@ -152,20 +196,24 @@ function createAbVariantsField(
   fields: AnyField[],
   fieldNames: AbFieldNames,
   labels: AbFieldLabels,
+  cloneMode: AbObjectCloneMode,
 ): AnyField {
-  const variantFields: AnyField[] = [
-    {
-      name: AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
-      type: 'array',
-      of: [{type: 'string'}],
-      hidden: true,
-      readOnly: true,
-      options: {
-        [AB_INTERNAL_OPTION]: true,
-      },
-    },
-    ...decorateVariantFieldsWithSelectionVisibility(fields),
-  ]
+  const variantFields: AnyField[] =
+    cloneMode === 'allFields'
+      ? fields
+      : [
+          {
+            name: AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
+            type: 'array',
+            of: [{type: 'string'}],
+            hidden: true,
+            readOnly: true,
+            options: {
+              [AB_INTERNAL_OPTION]: true,
+            },
+          },
+          ...decorateVariantFieldsWithSelectionVisibility(fields),
+        ]
 
   return {
     name: fieldNames.variants,
@@ -258,13 +306,22 @@ function transformAbContainerField(field: AnyField, config: WithAbObjectOptions)
 
   const resolvedFieldNames = resolveAbFieldNames(config.fieldNames)
   const resolvedLabels = resolveAbFieldLabels(config.labels)
+  const cloneMode = config.cloneMode ?? DEFAULT_AB_OBJECT_CLONE_MODE
+  const variantBaseFields =
+    cloneMode === 'allFields'
+      ? removeAbPayloadFieldsFromSchema(originalFields, resolvedFieldNames)
+      : transformedBaseFields
 
   transformed.fields = [
     ...transformedBaseFields,
     createAbToggleField(resolvedFieldNames, resolvedLabels),
     createAbTestRefField(resolvedFieldNames, resolvedLabels, config.abTestTypeName),
-    createAbVariantsField(transformedBaseFields, resolvedFieldNames, resolvedLabels),
+    createAbVariantsField(variantBaseFields, resolvedFieldNames, resolvedLabels, cloneMode),
   ]
+  transformed.options = {
+    ...transformed.options,
+    [AB_CLONE_MODE_OPTION]: cloneMode,
+  }
 
   return transformed
 }

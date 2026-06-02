@@ -1,6 +1,8 @@
 import type {FieldMember, ObjectInputProps} from 'sanity'
 import {AB_SELECTED_VARIANT_FIELDS_FIELD_NAME, resolveAbFieldNames} from '../abConfig'
 
+type AbFieldNames = ReturnType<typeof resolveAbFieldNames>
+
 export function cloneValue<T>(value: T): T {
   if (typeof structuredClone === 'function') {
     return structuredClone(value)
@@ -9,23 +11,54 @@ export function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+function getAbPayloadFieldNames(fieldNames: AbFieldNames): Set<string> {
+  return new Set([
+    AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
+    fieldNames.toggle,
+    fieldNames.variants,
+    fieldNames.variant,
+    fieldNames.testRef,
+    fieldNames.testName,
+    fieldNames.variantCode,
+  ])
+}
+
+export function cloneContentValue<T>(value: T, fieldNames: AbFieldNames): T {
+  const clonedValue = cloneValue(value)
+  const abPayloadFieldNames = getAbPayloadFieldNames(fieldNames)
+
+  const stripAbPayloadFields = (input: unknown): unknown => {
+    if (Array.isArray(input)) {
+      return input.map((item) => stripAbPayloadFields(item))
+    }
+
+    if (!isPlainRecord(input)) {
+      return input
+    }
+
+    return Object.fromEntries(
+      Object.entries(input)
+        .filter(([key]) => !abPayloadFieldNames.has(key))
+        .map(([key, entryValue]) => [key, stripAbPayloadFields(entryValue)]),
+    )
+  }
+
+  return stripAbPayloadFields(clonedValue) as T
+}
+
 export function getControlVariantSeed(
   valueRecord: Record<string, unknown> | undefined,
-  fieldNames: ReturnType<typeof resolveAbFieldNames>,
+  fieldNames: AbFieldNames,
 ): Record<string, unknown> {
   if (!valueRecord) {
     return {}
   }
 
-  const controlEntries = Object.entries(valueRecord).filter(
-    ([key]) =>
-      key !== fieldNames.toggle &&
-      key !== fieldNames.variants &&
-      key !== fieldNames.variant &&
-      key !== fieldNames.testRef,
-  )
-
-  return cloneValue(Object.fromEntries(controlEntries))
+  return cloneContentValue(valueRecord, fieldNames)
 }
 
 export function pathToKey(path: unknown): string {
@@ -60,17 +93,18 @@ export function createSelectionScopedVariantRecord(
   selectedFieldNames: string[],
   currentVariantValue: Record<string, unknown>,
   controlVariantSeed: Record<string, unknown>,
+  fieldNames: AbFieldNames,
 ): Record<string, unknown> {
   const nextVariant: Record<string, unknown> = {}
 
   for (const fieldName of selectedFieldNames) {
     if (Object.prototype.hasOwnProperty.call(currentVariantValue, fieldName)) {
-      nextVariant[fieldName] = cloneValue(currentVariantValue[fieldName])
+      nextVariant[fieldName] = cloneContentValue(currentVariantValue[fieldName], fieldNames)
       continue
     }
 
     if (Object.prototype.hasOwnProperty.call(controlVariantSeed, fieldName)) {
-      nextVariant[fieldName] = cloneValue(controlVariantSeed[fieldName])
+      nextVariant[fieldName] = cloneContentValue(controlVariantSeed[fieldName], fieldNames)
     }
   }
 
