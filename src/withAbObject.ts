@@ -21,12 +21,35 @@ type AnyField = Record<string, unknown> & {
   title?: string
   fields?: AnyField[]
   of?: AnyField[]
+  groups?: unknown
   options?: unknown
   validation?: unknown
 }
 
 type SelectionAwareContext = {
   parent?: unknown
+}
+
+function getDefaultGroupName(groups: unknown): string | undefined {
+  if (!Array.isArray(groups)) {
+    return undefined
+  }
+
+  const defaultGroup = groups.find(
+    (group): group is {name: string; default?: boolean} =>
+      typeof group === 'object' &&
+      group !== null &&
+      typeof (group as {name?: unknown}).name === 'string' &&
+      Boolean((group as {default?: unknown}).default),
+  )
+  const fallbackGroup = groups.find(
+    (group): group is {name: string} =>
+      typeof group === 'object' &&
+      group !== null &&
+      typeof (group as {name?: unknown}).name === 'string',
+  )
+
+  return defaultGroup?.name ?? fallbackGroup?.name
 }
 
 function getSelectedVariantFieldSet(parent: unknown): Set<string> | null {
@@ -153,6 +176,23 @@ function removeAbPayloadFieldsFromSchema(fields: AnyField[], fieldNames: AbField
     })
 }
 
+function removeGroupsFromSchema(field: AnyField): AnyField {
+  const nextField: AnyField = {...field}
+
+  delete nextField.group
+  delete nextField.groups
+
+  if (Array.isArray(field.fields)) {
+    nextField.fields = field.fields.map(removeGroupsFromSchema)
+  }
+
+  if (Array.isArray(field.of)) {
+    nextField.of = field.of.map(removeGroupsFromSchema)
+  }
+
+  return nextField
+}
+
 function transformNestedCollections(field: AnyField, config: WithAbObjectOptions): AnyField {
   const transformed: AnyField = {...field}
 
@@ -167,12 +207,17 @@ function transformNestedCollections(field: AnyField, config: WithAbObjectOptions
   return transformed
 }
 
-function createAbToggleField(fieldNames: AbFieldNames, labels: AbFieldLabels): AnyField {
+function createAbToggleField(
+  fieldNames: AbFieldNames,
+  labels: AbFieldLabels,
+  group?: string,
+): AnyField {
   return {
     name: fieldNames.toggle,
     title: labels.toggle,
     type: 'boolean',
     initialValue: false,
+    ...(group ? {group} : {}),
   }
 }
 
@@ -180,12 +225,14 @@ function createAbTestRefField(
   fieldNames: AbFieldNames,
   labels: AbFieldLabels,
   abTestTypeName: string | undefined,
+  group?: string,
 ): AnyField {
   return {
     name: fieldNames.testRef,
     title: labels.testRef,
     type: 'reference',
     to: [{type: abTestTypeName ?? DEFAULT_AB_TEST_TYPE_NAME}],
+    ...(group ? {group} : {}),
     options: {
       [AB_INTERNAL_OPTION]: true,
     },
@@ -197,10 +244,12 @@ function createAbVariantsField(
   fieldNames: AbFieldNames,
   labels: AbFieldLabels,
   cloneMode: AbObjectCloneMode,
+  group?: string,
 ): AnyField {
+  const groupedVariantFields = fields.map(removeGroupsFromSchema)
   const variantFields: AnyField[] =
     cloneMode === 'allFields'
-      ? fields
+      ? groupedVariantFields
       : [
           {
             name: AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
@@ -212,13 +261,14 @@ function createAbVariantsField(
               [AB_INTERNAL_OPTION]: true,
             },
           },
-          ...decorateVariantFieldsWithSelectionVisibility(fields),
+          ...decorateVariantFieldsWithSelectionVisibility(groupedVariantFields),
         ]
 
   return {
     name: fieldNames.variants,
     title: labels.variants,
     type: 'array',
+    ...(group ? {group} : {}),
     options: {
       [AB_INTERNAL_OPTION]: true,
       disableActions: AB_VARIANTS_DISABLE_ACTIONS,
@@ -307,6 +357,7 @@ function transformAbContainerField(field: AnyField, config: WithAbObjectOptions)
   const resolvedFieldNames = resolveAbFieldNames(config.fieldNames)
   const resolvedLabels = resolveAbFieldLabels(config.labels)
   const cloneMode = config.cloneMode ?? DEFAULT_AB_OBJECT_CLONE_MODE
+  const defaultGroupName = getDefaultGroupName(field.groups)
   const variantBaseFields =
     cloneMode === 'allFields'
       ? removeAbPayloadFieldsFromSchema(originalFields, resolvedFieldNames)
@@ -314,9 +365,20 @@ function transformAbContainerField(field: AnyField, config: WithAbObjectOptions)
 
   transformed.fields = [
     ...transformedBaseFields,
-    createAbToggleField(resolvedFieldNames, resolvedLabels),
-    createAbTestRefField(resolvedFieldNames, resolvedLabels, config.abTestTypeName),
-    createAbVariantsField(variantBaseFields, resolvedFieldNames, resolvedLabels, cloneMode),
+    createAbToggleField(resolvedFieldNames, resolvedLabels, defaultGroupName),
+    createAbTestRefField(
+      resolvedFieldNames,
+      resolvedLabels,
+      config.abTestTypeName,
+      defaultGroupName,
+    ),
+    createAbVariantsField(
+      variantBaseFields,
+      resolvedFieldNames,
+      resolvedLabels,
+      cloneMode,
+      defaultGroupName,
+    ),
   ]
   transformed.options = {
     ...transformed.options,

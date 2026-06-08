@@ -15,6 +15,8 @@ type AnyField = Record<string, unknown> & {
   type?: string
   fields?: AnyField[]
   of?: AnyField[]
+  groups?: unknown
+  group?: unknown
   options?: Record<string, unknown>
   hidden?: unknown
 }
@@ -267,5 +269,97 @@ describe('withAbObject', () => {
 
     expect(decoratedItemsField.validation).toBe(arrayValidation)
     expect((decoratedItemsField.validation as Function).length).toBe(1)
+  })
+
+  it('preserves field groups on grouped schemas and strips groups from variant payloads', () => {
+    const groups = [{name: 'contents', default: true}]
+    const inputField = {
+      name: 'callToActionTemplate',
+      type: 'document',
+      groups,
+      fields: [{name: 'heading', type: 'string', group: 'contents'}],
+    }
+
+    const result = withAbObject(inputField)
+    expect((result as AnyField).groups).toBe(groups)
+
+    const resultFields = (result as AnyField).fields ?? []
+    const toggleField = findField(resultFields, fieldNames.toggle) as AnyField
+    const testRefField = findField(resultFields, fieldNames.testRef) as AnyField
+    const variantsField = findField(resultFields, fieldNames.variants) as AnyField
+    const variantEntry = variantsField.of?.[0] as AnyField
+    const testNameField = findField(variantEntry.fields ?? [], fieldNames.testName) as AnyField
+    const variantCodeField = findField(
+      variantEntry.fields ?? [],
+      fieldNames.variantCode,
+    ) as AnyField
+    const variantObject = (variantEntry.fields ?? []).find(
+      (field) => field.name === fieldNames.variant,
+    ) as AnyField
+    const variantFields = variantObject.fields ?? []
+    const selectedFieldsField = findField(
+      variantFields,
+      AB_SELECTED_VARIANT_FIELDS_FIELD_NAME,
+    ) as AnyField
+
+    expect(toggleField.group).toBe('contents')
+    expect(testRefField.group).toBe('contents')
+    expect(variantsField.group).toBe('contents')
+    expect(variantEntry.groups).toBeUndefined()
+    expect(testNameField.group).toBeUndefined()
+    expect(variantCodeField.group).toBeUndefined()
+    expect(variantObject.group).toBeUndefined()
+    expect(variantObject.groups).toBeUndefined()
+    expect(selectedFieldsField.group).toBeUndefined()
+    expect(findField(variantFields, 'heading')?.group).toBeUndefined()
+  })
+
+  it('preserves multiple groups on grouped object schemas and strips variant payload groups', () => {
+    const groups = [
+      {name: 'contents', default: true},
+      {name: 'media'},
+      {name: 'button'},
+      {name: 'designSystem'},
+    ]
+    const inputField = {
+      name: 'callToAction',
+      type: 'object',
+      groups,
+      fields: [
+        {name: 'heading', type: 'string', group: 'contents'},
+        {name: 'image', type: 'image', group: 'media'},
+        {name: 'button', type: 'object', group: 'button', fields: []},
+        {name: 'theme', type: 'string', group: 'designSystem'},
+      ],
+    }
+
+    const result = withAbObject(inputField)
+    const resultFields = (result as AnyField).fields ?? []
+    const variantsField = findField(resultFields, fieldNames.variants) as AnyField
+    const variantEntry = variantsField.of?.[0] as AnyField
+    const testNameField = findField(variantEntry.fields ?? [], fieldNames.testName) as AnyField
+    const variantCodeField = findField(
+      variantEntry.fields ?? [],
+      fieldNames.variantCode,
+    ) as AnyField
+    const variantObject = (variantEntry.fields ?? []).find(
+      (field) => field.name === fieldNames.variant,
+    ) as AnyField
+    const variantFields = variantObject.fields ?? []
+
+    expect((result as AnyField).groups).toBe(groups)
+    expect(findField(resultFields, 'heading')?.group).toBe('contents')
+    expect(findField(resultFields, 'image')?.group).toBe('media')
+    expect(findField(resultFields, 'button')?.group).toBe('button')
+    expect(findField(resultFields, 'theme')?.group).toBe('designSystem')
+    expect(variantEntry.groups).toBeUndefined()
+    expect(testNameField.group).toBeUndefined()
+    expect(variantCodeField.group).toBeUndefined()
+    expect(variantObject.group).toBeUndefined()
+    expect(variantObject.groups).toBeUndefined()
+    expect(findField(variantFields, 'heading')?.group).toBeUndefined()
+    expect(findField(variantFields, 'image')?.group).toBeUndefined()
+    expect(findField(variantFields, 'button')?.group).toBeUndefined()
+    expect(findField(variantFields, 'theme')?.group).toBeUndefined()
   })
 })

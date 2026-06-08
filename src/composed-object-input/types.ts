@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react'
-import type {FieldMember, ObjectInputProps} from 'sanity'
+import type {FieldMember, ObjectInputProps, ObjectMember} from 'sanity'
 
 export type ObjectInputCustomizer = {
   matchField: (member: FieldMember) => boolean
@@ -16,6 +16,6 @@ export type SlotDescriptor =
     }
   | {
       key: string
-      type: 'field'
-      member: FieldMember
+      type: 'member'
+      member: ObjectMember
     }

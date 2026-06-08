@@ -1,34 +1,16 @@
-import {Stack} from '@sanity/ui'
-import {Fragment} from 'react'
-import {MemberField, type ObjectInputProps} from 'sanity'
+import {
+  type DecorationMember,
+  type ObjectInputProps,
+  type ObjectMember,
+} from 'sanity'
 
 import {getSlotDescriptors, isFieldMember} from './slotDescriptors'
 import type {ObjectInputCustomizer, SlotDescriptor} from './types'
 
 export function createComposedObjectInput(customizers: ObjectInputCustomizer[]) {
   return function ComposedObjectInput(props: ObjectInputProps) {
-    const {
-      members,
-      renderInput,
-      renderField,
-      renderItem,
-      renderPreview,
-      renderBlock,
-      renderInlineBlock,
-      renderAnnotation,
-    } = props
-    const memberRenderProps = {
-      renderInput,
-      renderField,
-      renderItem,
-      renderPreview,
-      renderBlock,
-      renderInlineBlock,
-      renderAnnotation,
-    }
-
-    const fieldMembers = members.filter(isFieldMember)
-    const slotDescriptors = getSlotDescriptors(fieldMembers, customizers)
+    const {members} = props
+    const slotDescriptors = getSlotDescriptors(members, customizers)
     const matchedCustomizers = new Set(
       slotDescriptors
         .filter(
@@ -37,28 +19,37 @@ export function createComposedObjectInput(customizers: ObjectInputCustomizer[]) 
         )
         .map((descriptor) => descriptor.customizer),
     )
-    const fallbackMember = fieldMembers[0]
+    const fallbackMember = members.find(isFieldMember)
     const unmatchedCustomizers = fallbackMember
       ? customizers.filter((customizer) => !matchedCustomizers.has(customizer))
       : []
+    const renderedMembers: ObjectMember[] = slotDescriptors.flatMap(
+      (descriptor): ObjectMember[] => {
+        if (descriptor.type === 'customizer') {
+          return [
+            {
+              kind: 'decoration',
+              key: descriptor.key,
+              component: descriptor.customizer.render(props, descriptor.member),
+            } satisfies DecorationMember,
+          ]
+        }
 
-    return (
-      <Stack space={4}>
-        {slotDescriptors.map((descriptor) => (
-          <Fragment key={descriptor.key}>
-            {descriptor.type === 'customizer' ? (
-              descriptor.customizer.render(props, descriptor.member)
-            ) : (
-              <MemberField member={descriptor.member} {...memberRenderProps} />
-            )}
-          </Fragment>
-        ))}
-        {unmatchedCustomizers.map((customizer, index) => (
-          <Fragment key={`unmatched-customizer-${index}`}>
-            {customizer.render(props, fallbackMember)}
-          </Fragment>
-        ))}
-      </Stack>
+        return [descriptor.member]
+      },
     )
+
+    for (const [index, customizer] of unmatchedCustomizers.entries()) {
+      renderedMembers.push({
+        kind: 'decoration',
+        key: `unmatched-customizer-${index}`,
+        component: customizer.render(props, fallbackMember),
+      } satisfies DecorationMember)
+    }
+
+    return props.renderDefault({
+      ...props,
+      members: renderedMembers,
+    })
   }
 }
