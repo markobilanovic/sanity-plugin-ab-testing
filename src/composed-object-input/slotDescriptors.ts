@@ -1,4 +1,4 @@
-import type {FieldMember} from 'sanity'
+import type {FieldMember, ObjectMember} from 'sanity'
 import type {ObjectInputCustomizer, SlotDescriptor} from './types'
 
 export function isFieldMember(member: {kind: string}): member is FieldMember {
@@ -6,13 +6,22 @@ export function isFieldMember(member: {kind: string}): member is FieldMember {
 }
 
 export function getSlotDescriptors(
-  fieldMembers: FieldMember[],
+  members: ObjectMember[],
   customizers: ObjectInputCustomizer[],
 ): SlotDescriptor[] {
   const rendered = new Set<string>()
   const slots: SlotDescriptor[] = []
 
-  for (const member of fieldMembers) {
+  for (const member of members) {
+    if (member.kind !== 'field') {
+      slots.push({
+        key: member.key,
+        type: 'member',
+        member,
+      })
+      continue
+    }
+
     if (rendered.has(member.name)) {
       continue
     }
@@ -32,7 +41,7 @@ export function getSlotDescriptors(
       continue
     }
 
-    slots.push({key: member.name, type: 'field', member})
+    slots.push({key: member.name, type: 'member', member})
   }
 
   return slots
