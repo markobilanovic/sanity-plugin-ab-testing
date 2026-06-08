@@ -118,7 +118,10 @@ export const abObjectCloningPlugin = definePlugin<AbObjectCloningOptions | void>
           ) {
             const customInput = props.schemaType?.components?.input
             const renderWithAbControls = (inputProps: ObjectInputProps) =>
-              React.createElement(abComposedObjectInput, inputProps)
+              React.createElement(abComposedObjectInput, {
+                ...inputProps,
+                renderDefault: props.renderDefault,
+              })
 
             if (customInput) {
               return React.createElement(customInput, {

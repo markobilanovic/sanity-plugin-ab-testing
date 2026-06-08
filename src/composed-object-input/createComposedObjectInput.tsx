@@ -1,8 +1,4 @@
-import {
-  type DecorationMember,
-  type ObjectInputProps,
-  type ObjectMember,
-} from 'sanity'
+import {type DecorationMember, type ObjectInputProps, type ObjectMember} from 'sanity'
 
 import {getSlotDescriptors, isFieldMember} from './slotDescriptors'
 import type {ObjectInputCustomizer, SlotDescriptor} from './types'
